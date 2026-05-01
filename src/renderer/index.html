@@ -1,0 +1,23 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <title>quick-prompt</title>
+    <link rel="stylesheet" href="./styles.css" />
+    <script type="module" src="./index.ts"></script>
+  </head>
+  <body>
+    <div class="container">
+      <div id="model-label"></div>
+      <input
+        id="prompt-input"
+        type="text"
+        placeholder="Type or paste text..."
+        autofocus
+      />
+      <div id="result" hidden></div>
+      <div id="status" hidden></div>
+      <div id="hint">&#x21B5; Check &middot; esc Dismiss</div>
+    </div>
+  </body>
+</html>

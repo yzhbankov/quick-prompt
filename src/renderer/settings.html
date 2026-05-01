@@ -1,0 +1,60 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <title>Quick Prompt Settings</title>
+    <link rel="stylesheet" href="./settings.css" />
+    <script type="module" src="./settings.ts"></script>
+  </head>
+  <body>
+    <main>
+      <h1>Settings</h1>
+
+      <div class="field">
+        <label for="api-key">API Key</label>
+        <div class="row inline">
+          <input
+            id="api-key"
+            type="password"
+            placeholder="sk-ant-..."
+            spellcheck="false"
+            autocomplete="off"
+          />
+          <button id="reveal-btn" class="ghost" type="button" title="Show / hide key">
+            Show
+          </button>
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="model-select">Model</label>
+        <select id="model-select"></select>
+        <label for="custom-model" class="small">Custom model</label>
+        <div class="row inline">
+          <input
+            id="custom-model"
+            type="text"
+            placeholder="claude-..."
+            spellcheck="false"
+            autocomplete="off"
+          />
+          <button id="add-model-btn" class="small" type="button">Add</button>
+        </div>
+      </div>
+
+      <div class="field grow">
+        <div class="label-row">
+          <label for="system-prompt">System Prompt</label>
+          <button id="reset-btn" class="link" type="button">Restore Default</button>
+        </div>
+        <textarea id="system-prompt" rows="5" spellcheck="false"></textarea>
+      </div>
+
+      <div class="actions">
+        <span id="status"></span>
+        <button id="cancel-btn" class="secondary" type="button">Cancel</button>
+        <button id="save-btn" class="primary" type="button">Save</button>
+      </div>
+    </main>
+  </body>
+</html>
