@@ -159,4 +159,8 @@ Then add `icon: './assets/icon.icns'` back into the `maker-dmg` config (and `pac
 
 ## License
 
-MIT
+[GNU Affero General Public License v3.0 or later](LICENSE) (AGPL-3.0-or-later).
+
+Copyright © 2026 yzhbankov.
+
+In short: you're free to use, study, modify, and redistribute Quick Prompt, including over a network. **Any derivative work — including a hosted/SaaS version — must be released under the same license, with full source code available to its users.** See `LICENSE` for the full text.

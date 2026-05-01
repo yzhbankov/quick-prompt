@@ -19,7 +19,7 @@
     "name": "yzhbankov",
     "email": "yzhbankov@redpointpositioning.com"
   },
-  "license": "MIT",
+  "license": "AGPL-3.0-or-later",
   "pnpm": {
     "onlyBuiltDependencies": [
       "electron",
