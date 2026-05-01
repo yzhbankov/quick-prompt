@@ -444,6 +444,7 @@ ipcMain.handle('check-text', async (_event, text: string) => checkText(text));
 ipcMain.handle('is-api-key-missing', () => isApiKeyMissing());
 ipcMain.handle('clipboard-read', () => clipboard.readText());
 ipcMain.handle('get-model', () => getModel());
+ipcMain.handle('get-app-version', () => app.getVersion());
 
 ipcMain.on('clipboard-write', (_event, text: string) => {
   clipboard.writeText(text);

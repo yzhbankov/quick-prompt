@@ -29,6 +29,7 @@ interface QuickPromptApi {
   resizeWindow: (height: number) => void;
   openSettings: () => void;
   getModel: () => Promise<string>;
+  getAppVersion: () => Promise<string>;
   onSettingsUpdated: (callback: (settings: Settings) => void) => void;
 }
 

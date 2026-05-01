@@ -37,6 +37,18 @@ body {
   font-feature-settings: 'tnum';
 }
 
+#version-label {
+  position: absolute;
+  top: 6px;
+  left: 12px;
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.2);
+  pointer-events: none;
+  user-select: none;
+  letter-spacing: 0.02em;
+  font-feature-settings: 'tnum';
+}
+
 #prompt-input {
   width: 100%;
   font-size: 18px;

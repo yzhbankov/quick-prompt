@@ -38,6 +38,7 @@ const api = {
     ipcRenderer.send('open-settings');
   },
   getModel: (): Promise<string> => ipcRenderer.invoke('get-model'),
+  getAppVersion: (): Promise<string> => ipcRenderer.invoke('get-app-version'),
   onSettingsUpdated: (callback: (settings: SettingsPayload) => void): void => {
     ipcRenderer.on('settings-updated', (_event, settings: SettingsPayload) => callback(settings));
   },

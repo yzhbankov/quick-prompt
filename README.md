@@ -35,6 +35,33 @@ pnpm run package
 The app will be in `out/Quick Prompt-darwin-*/Quick Prompt.app`
 Right-click > Open on first launch (app is unsigned).
 
+To produce a distributable DMG instead:
+
+```bash
+pnpm run make
+```
+
+Output: `out/make/Quick Prompt.dmg`. By default this builds for the host architecture (arm64 on Apple Silicon, x64 on Intel).
+
+### Building for Intel (x64) on Apple Silicon
+
+```bash
+pnpm exec electron-forge make --arch=x64
+```
+
+The DMG written to `out/make/Quick Prompt.dmg` will be Intel-only — move or rename it before running another `make`, otherwise the next build overwrites it.
+
+To build both architectures, run once per arch and rename the DMGs between runs:
+
+```bash
+pnpm run make
+mv "out/make/Quick Prompt.dmg" "out/make/Quick Prompt-arm64.dmg"
+pnpm exec electron-forge make --arch=x64
+mv "out/make/Quick Prompt.dmg" "out/make/Quick Prompt-x64.dmg"
+```
+
+Note: `pnpm run make -- --arch=x64` does not forward the flag in pnpm 10 — invoke `electron-forge` directly via `pnpm exec`.
+
 For the packaged app, provide your API key in one of two ways:
 
 **Option A — env file:**

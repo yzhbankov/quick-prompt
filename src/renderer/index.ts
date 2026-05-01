@@ -12,9 +12,9 @@ interface SettingsPayload {
 
 const DEFAULT_PLACEHOLDER = 'Type or paste text...';
 const MISSING_KEY_PLACEHOLDER = '⚠ API key not set. Press ⌘, for Settings';
-const HINT_INPUT = '↵ Check · esc Dismiss';
+const HINT_INPUT = '↵ Check · esc Dismiss · ⌘, Settings';
 const HINT_LOADING = 'Waiting for response...';
-const HINT_RESULT = '↵ New · esc Dismiss';
+const HINT_RESULT = '↵ New · esc Dismiss · ⌘, Settings';
 const INPUT_WINDOW_HEIGHT = 100;
 const MIN_WINDOW_HEIGHT = 100;
 const MAX_WINDOW_HEIGHT = 500;
@@ -31,6 +31,7 @@ let resultEl: HTMLDivElement;
 let statusEl: HTMLDivElement;
 let hintEl: HTMLDivElement;
 let modelLabel: HTMLDivElement;
+let versionLabel: HTMLDivElement;
 let wrapper: HTMLElement;
 
 const formatModelName = (model: string): string => {
@@ -187,6 +188,7 @@ window.addEventListener('DOMContentLoaded', async () => {
   statusEl = document.getElementById('status') as HTMLDivElement;
   hintEl = document.getElementById('hint') as HTMLDivElement;
   modelLabel = document.getElementById('model-label') as HTMLDivElement;
+  versionLabel = document.getElementById('version-label') as HTMLDivElement;
   wrapper = document.querySelector('.container') as HTMLElement;
 
   input.focus();
@@ -211,6 +213,13 @@ window.addEventListener('DOMContentLoaded', async () => {
     setModelLabel(initialModel);
   } catch (err: unknown) {
     console.error('[quick-prompt] Failed to read initial model:', err);
+  }
+
+  try {
+    const version = await window.api.getAppVersion();
+    versionLabel.textContent = `v${version}`;
+  } catch (err: unknown) {
+    console.error('[quick-prompt] Failed to read app version:', err);
   }
 });
 
