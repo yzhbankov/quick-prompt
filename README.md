@@ -23,6 +23,52 @@ Native macOS app. Apple Silicon and Intel. Free and open source.
 
 Press ⌘⇧G. Get back to work.
 
+## Getting started
+
+Three steps. Two minutes.
+
+### 1. Install
+
+Open the DMG and drag **Quick Prompt** into your **Applications** folder.
+
+> **First launch:** the app is unsigned, so macOS will block it. Open **Applications**, **right-click** Quick Prompt → **Open**, then click **Open** again to confirm. You only have to do this once.
+
+### 2. Add your Anthropic API key
+
+Get a key at [console.anthropic.com](https://console.anthropic.com) (you'll need an account with billing enabled).
+
+Then in Quick Prompt:
+
+1. Press **⌘⇧G** to open the overlay.
+2. Press **⌘,** to open Settings.
+3. Paste your API key into the **API Key** field and click **Save**.
+
+You're ready.
+
+### 3. Use it
+
+Anywhere on your Mac, in any app:
+
+1. Press **⌘⇧G** — the overlay appears.
+2. Type or paste your text.
+3. Press **Enter** — Claude rewrites it and copies the result to your clipboard.
+4. Switch back to your app and press **⌘V** to paste.
+
+**Handy shortcuts:**
+
+| Shortcut | What it does |
+|---|---|
+| `⌘⇧G` | Open / close the overlay (works from any app) |
+| `Enter` | Send your text · or, on a result, start a new query |
+| `Esc` | Dismiss the overlay |
+| `⌘,` | Open Settings (change prompt, model, API key) |
+
+**Pro tips:**
+
+- **Copy first, summon second.** If you copy text *before* pressing ⌘⇧G, Quick Prompt auto-fills it for you — one less keystroke.
+- **Lives in the menu bar.** No Dock icon. Click the Quick Prompt icon in your menu bar for Show/Hide/Quit.
+- **Make it yours.** In Settings, edit the **System Prompt** to change what Quick Prompt does — translate, summarize, fix code, soften tone, write commit messages, anything. Switch models (Opus/Sonnet/Haiku) depending on the task.
+
 ## Prerequisites
 
 - macOS 12+
@@ -93,19 +139,11 @@ with `ANTHROPIC_API_KEY=your-key-here`
 export ANTHROPIC_API_KEY=your-key-here
 ```
 
-## Usage
-
-- **Cmd+Shift+G** — open/close the overlay (works from any app)
-- Type or paste text, press Enter — text is corrected and auto-copied to clipboard
-- **Enter** (when result is showing) — clear and start new query
-- **Escape** — hide the overlay
-- If you copy text before opening, it auto-pastes into the input
-
-The app runs in the menu bar with a tray icon (no dock icon). Tray menu provides Show/Hide as a fallback.
-
 ## Customizing the prompt
 
-Edit the system prompt in `src/main.ts` — search for `system:` in the fetch call body. Change it to anything: translation, summarization, tone adjustment, etc.
+The simplest way is to open the app and press **⌘,** for Settings — edit the **System Prompt** field and click Save.
+
+The default starts with text correction. Change it to anything: translation, summarization, tone adjustment, code review, commit-message generation, etc.
 
 ## App icon
 
