@@ -1,8 +1,27 @@
 # Quick Prompt
 
-A lightweight macOS overlay for instant AI text correction. Press Cmd+Shift+G from anywhere, paste text, get it corrected.
+**The fastest way to put Claude in any app on your Mac.**
+
+Press **⌘⇧G** from anywhere — your inbox, your IDE, a Slack message, a Google Doc — and a sleek overlay appears over your work. Type or paste text, hit Enter, and Claude rewrites it. The result is auto-copied to your clipboard, ready to paste back where you started. Total time: under two seconds.
 
 <!-- screenshot: add screenshot.png here -->
+
+## Why you'll love it
+
+- **Zero context switch.** No tabs, no apps to alt-tab to, no copy-paste shuffle. Quick Prompt floats over whatever you're doing and gets out of the way the moment it's done.
+- **Smart by default.** Just copied some text? Quick Prompt auto-fills it. Done with the response? It's already on your clipboard. The workflow you'd build by hand — built in.
+- **Your prompt, your tool.** Out of the box it polishes writing. Change the system prompt in Settings to make it translate, summarize, soften your tone, fix code, generate commit messages, or anything else you'd ask Claude. One hotkey, infinite uses.
+- **Choose your Claude.** Switch between Opus, Sonnet, and Haiku models in Settings — pay for power when you need it, save tokens when you don't.
+- **Lives in your menu bar.** No Dock clutter. No window management. Quietly waits until you summon it.
+- **Your key, your data.** Bring your own Anthropic API key. Requests go straight from your Mac to Anthropic — nothing in the middle, no subscriptions, no telemetry.
+
+## Built for people who type for a living
+
+Writers, developers, support reps, PMs, students, non-native English speakers — anyone who edits, polishes, or transforms text dozens of times a day. Quick Prompt turns "open ChatGPT, paste, prompt, copy, switch back, paste" into a single keystroke.
+
+Native macOS app. Apple Silicon and Intel. Free and open source.
+
+Press ⌘⇧G. Get back to work.
 
 ## Prerequisites
 
