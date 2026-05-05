@@ -1,29 +1,23 @@
 # Quick Prompt
 
-**The fastest way to put Claude in any app on your Mac.**
+**One hotkey, any AI, any app on your Mac.**
 
-Press **⌘⇧G** from anywhere — your inbox, your IDE, a Slack message, a Google Doc — and a sleek overlay appears over your work. Type or paste text, hit Enter, and Claude rewrites it. The result is auto-copied to your clipboard, ready to paste back where you started. Total time: under two seconds.
+Press **⌘⇧G** from anywhere — your inbox, your IDE, a Slack message, a Google Doc — and a sleek overlay appears. Type or paste text, hit Enter, and your prompt runs. The result is auto-copied to your clipboard, ready to paste back where you started. Total time: under two seconds.
 
 <!-- screenshot: add screenshot.png here -->
 
-## Why you'll love it
+## What you'll love
 
-- **Zero context switch.** No tabs, no apps to alt-tab to, no copy-paste shuffle. Quick Prompt floats over whatever you're doing and gets out of the way the moment it's done.
-- **Smart by default.** Just copied some text? Quick Prompt auto-fills it. Done with the response? It's already on your clipboard. The workflow you'd build by hand — built in.
-- **Your prompt, your tool.** Out of the box it polishes writing. Change the system prompt in Settings to make it translate, summarize, soften your tone, fix code, generate commit messages, or anything else you'd ask Claude. One hotkey, infinite uses.
-- **Choose your Claude.** Switch between Opus, Sonnet, and Haiku models in Settings — pay for power when you need it, save tokens when you don't.
-- **Lives in your menu bar.** No Dock clutter. No window management. Quietly waits until you summon it.
-- **Your key, your data.** Bring your own Anthropic API key. Requests go straight from your Mac to Anthropic — nothing in the middle, no subscriptions, no telemetry.
-
-## Built for people who type for a living
-
-Writers, developers, support reps, PMs, students, non-native English speakers — anyone who edits, polishes, or transforms text dozens of times a day. Quick Prompt turns "open ChatGPT, paste, prompt, copy, switch back, paste" into a single keystroke.
+- **Pick your engine.** Anthropic, OpenAI, or a local model on your own Mac. Switch any time in Settings.
+- **Free, private mode.** Run it 100% offline with Apple Intelligence (via Apfel), Ollama, or LM Studio. No API key, no cloud, no telemetry.
+- **Zero context switch.** Floats over whatever you're doing. Auto-fills from clipboard. Auto-copies the result. Vanishes on Esc.
+- **Your prompt, your tool.** Out of the box it polishes writing. Edit the system prompt in Settings to translate, summarize, fix code, write commit messages — anything.
+- **Lives in the menu bar.** No Dock clutter, no window management.
+- **Works in fullscreen.** The overlay floats above fullscreen apps and follows your cursor across multiple monitors.
 
 Native macOS app. Apple Silicon and Intel. Free and open source.
 
-Press ⌘⇧G. Get back to work.
-
-## Getting started
+## Get started
 
 Three steps. Two minutes.
 
@@ -33,17 +27,17 @@ Open the DMG and drag **Quick Prompt** into your **Applications** folder.
 
 > **First launch:** the app is unsigned, so macOS will block it. Open **Applications**, **right-click** Quick Prompt → **Open**, then click **Open** again to confirm. You only have to do this once.
 
-### 2. Add your Anthropic API key
+### 2. Pick a provider
 
-Get a key at [console.anthropic.com](https://console.anthropic.com) (you'll need an account with billing enabled).
+Press **⌘⇧G** to open the overlay, then **⌘,** to open Settings.
 
-Then in Quick Prompt:
+Choose one of three tabs at the top:
 
-1. Press **⌘⇧G** to open the overlay.
-2. Press **⌘,** to open Settings.
-3. Paste your API key into the **API Key** field and click **Save**.
+- **Anthropic** — paste an API key from [console.anthropic.com](https://console.anthropic.com).
+- **OpenAI** — paste an API key from [platform.openai.com/api-keys](https://platform.openai.com/api-keys).
+- **Local Server** — point it at a local server on your Mac (see below). No API key needed.
 
-You're ready.
+Click **Test Connection** to verify, then **Save**.
 
 ### 3. Use it
 
@@ -51,148 +45,77 @@ Anywhere on your Mac, in any app:
 
 1. Press **⌘⇧G** — the overlay appears.
 2. Type or paste your text.
-3. Press **Enter** — Claude rewrites it and copies the result to your clipboard.
-4. Switch back to your app and press **⌘V** to paste.
+3. Press **Enter** — the result appears and is copied to your clipboard.
+4. Switch to your app and press **⌘V** to paste.
 
-**Handy shortcuts:**
+## Shortcuts
 
 | Shortcut | What it does |
 |---|---|
 | `⌘⇧G` | Open / close the overlay (works from any app) |
-| `Enter` | Send your text · or, on a result, start a new query |
+| `Enter` | Send your text — or, on a result, start a new query |
 | `Esc` | Dismiss the overlay |
-| `⌘,` | Open Settings (change prompt, model, API key) |
+| `⌘,` | Open Settings (provider, model, system prompt) |
 
-**Pro tips:**
+**Pro tips**
 
-- **Copy first, summon second.** If you copy text *before* pressing ⌘⇧G, Quick Prompt auto-fills it for you — one less keystroke.
-- **Lives in the menu bar.** No Dock icon. Click the Quick Prompt icon in your menu bar for Show/Hide/Quit.
-- **Make it yours.** In Settings, edit the **System Prompt** to change what Quick Prompt does — translate, summarize, fix code, soften tone, write commit messages, anything. Switch models (Opus/Sonnet/Haiku) depending on the task.
+- **Copy first, summon second.** If you copy text *before* pressing ⌘⇧G, Quick Prompt auto-fills it for you.
+- **Right-click the menu bar icon** for Show/Hide, Settings, and Quit.
+- **Drag to resize.** The Settings window and the system prompt textarea can both be resized to fit long prompts.
 
-## Prerequisites
+## Providers
 
-- macOS 12+
-- Node.js 18+ and pnpm (for building from source)
-- Anthropic API key (get one at https://console.anthropic.com)
+### Anthropic (cloud)
 
-## Setup
+Best quality for text tasks. Requires an API key from [console.anthropic.com](https://console.anthropic.com).
+Models: Claude Sonnet 4, Claude Opus 4, Claude Haiku 4.5, Claude Sonnet 4.5.
+Cost: typically $0.001-0.01 per request, depending on model and text length.
+
+### OpenAI (cloud)
+
+Requires an API key from [platform.openai.com/api-keys](https://platform.openai.com/api-keys).
+Models: GPT-4o, GPT-4o-mini, GPT-4.1, GPT-4.1-mini, GPT-4.1-nano, o3-mini.
+Cost: varies by model.
+
+### Local Server (free, offline, private)
+
+Connect to any OpenAI-compatible server running on your Mac. No API key, no internet, no cost. Your text never leaves your machine.
+
+**Apple Intelligence via Apfel** *(macOS 26+, Apple Silicon)*
+1. Install: [github.com/Arthur-Ficial/apfel](https://github.com/Arthur-Ficial/apfel)
+2. Run: `apfel --serve`
+3. Settings → Local Server → URL `http://127.0.0.1:11434`, Model `apple-foundationmodel`
+
+**Ollama**
+1. Install: [ollama.ai](https://ollama.ai)
+2. Pull a model: `ollama pull llama3`
+3. Run: `ollama serve`
+4. Settings → Local Server → URL `http://127.0.0.1:11434`, Model `llama3`
+
+**LM Studio**
+1. Install: [lmstudio.ai](https://lmstudio.ai)
+2. Download a model, start the local server
+3. Settings → Local Server → URL `http://127.0.0.1:1234`, Model (the one shown in LM Studio)
+
+## Customize the prompt
+
+Press **⌘,** in Settings, edit the **System Prompt** textarea (resizable — drag the bottom edge), and click **Save**.
+
+The default polishes writing. Change it to anything you'd ask an LLM: translate, summarize, fix code, soften tone, write commit messages, generate test cases.
+
+## Build from source
+
+Requirements: macOS 12+, Node.js 18+, pnpm.
 
 ```bash
 git clone <repo-url>
 cd quick-prompt
 pnpm install
-cp .env.example .env
-# Edit .env and add your ANTHROPIC_API_KEY
+pnpm run start         # dev
+pnpm run make          # produce DMG (host arch) → out/make/Quick Prompt.dmg
 ```
 
-## Run (development)
-
-```bash
-pnpm run start
-```
-
-## Build
-
-```bash
-pnpm run package
-```
-
-The app will be in `out/Quick Prompt-darwin-*/Quick Prompt.app`
-Right-click > Open on first launch (app is unsigned).
-
-To produce a distributable DMG instead:
-
-```bash
-pnpm run make
-```
-
-Output: `out/make/Quick Prompt.dmg`. By default this builds for the host architecture (arm64 on Apple Silicon, x64 on Intel).
-
-### Building for Intel (x64) on Apple Silicon
-
-```bash
-pnpm exec electron-forge make --arch=x64
-```
-
-The DMG written to `out/make/Quick Prompt.dmg` will be Intel-only — move or rename it before running another `make`, otherwise the next build overwrites it.
-
-To build both architectures, run once per arch and rename the DMGs between runs:
-
-```bash
-pnpm run make
-mv "out/make/Quick Prompt.dmg" "out/make/Quick Prompt-arm64.dmg"
-pnpm exec electron-forge make --arch=x64
-mv "out/make/Quick Prompt.dmg" "out/make/Quick Prompt-x64.dmg"
-```
-
-Note: `pnpm run make -- --arch=x64` does not forward the flag in pnpm 10 — invoke `electron-forge` directly via `pnpm exec`.
-
-For the packaged app, provide your API key in one of two ways:
-
-**Option A — env file:**
-Create `~/Library/Application Support/Quick Prompt/.env`
-with `ANTHROPIC_API_KEY=your-key-here`
-
-**Option B — system environment variable:**
-
-```bash
-export ANTHROPIC_API_KEY=your-key-here
-```
-
-## Providers
-
-Quick Prompt supports three AI providers. Switch between them in Settings (⌘,).
-
-### Anthropic (cloud)
-
-Best quality for text tasks. Requires an API key from https://console.anthropic.com
-Models: Claude Sonnet 4, Claude Opus 4, Claude Haiku 4.5, Claude Sonnet 4.5
-Cost: ~$0.001-0.01 per request depending on model and text length
-
-### OpenAI (cloud)
-
-Requires an API key from https://platform.openai.com/api-keys
-Models: GPT-4o, GPT-4o-mini, GPT-4.1, GPT-4.1-mini, GPT-4.1-nano, o3-mini
-Cost: varies by model
-
-### Local server (free, offline, private)
-
-Connect to any OpenAI-compatible local server. No API key, no internet,
-no cost. Your text never leaves your machine.
-
-**Apple Intelligence via Apfel (macOS 26+, Apple Silicon):**
-1. Install: https://github.com/Arthur-Ficial/apfel
-2. Run: apfel --serve
-3. Settings → Local Server → URL: http://127.0.0.1:11434 → Model: apple-foundationmodel
-
-**Ollama:**
-1. Install: https://ollama.ai
-2. Pull a model: ollama pull llama3
-3. Run: ollama serve
-4. Settings → Local Server → URL: http://127.0.0.1:11434 → Model: llama3
-
-**LM Studio:**
-1. Install: https://lmstudio.ai
-2. Download a model, start the local server
-3. Settings → Local Server → URL: http://127.0.0.1:1234 → Model: (shown in LM Studio)
-
-## Customizing the prompt
-
-The simplest way is to open the app and press **⌘,** for Settings — edit the **System Prompt** field and click Save.
-
-The default starts with text correction. Change it to anything: translation, summarization, tone adjustment, code review, commit-message generation, etc.
-
-## App icon
-
-A starter SVG icon is at `assets/icon.svg`. To produce an `.icns` for the DMG/app bundle, render it to PNG (e.g. via `rsvg-convert` or any vector editor) as `icon.png`, then on macOS:
-
-```bash
-mkdir icon.iconset
-sips -z 1024 1024 icon.png --out icon.iconset/icon_512x512@2x.png
-iconutil -c icns icon.iconset -o assets/icon.icns
-```
-
-Then add `icon: './assets/icon.icns'` back into the `maker-dmg` config (and `packagerConfig`) in `forge.config.ts` and rebuild.
+To build for Intel on Apple Silicon: `pnpm exec electron-forge make --arch=x64`. Each `make` overwrites `out/make/Quick Prompt.dmg` — rename between runs if building both architectures.
 
 ## License
 
