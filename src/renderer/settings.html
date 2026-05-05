@@ -7,178 +7,180 @@
     <script type="module" src="./settings.ts"></script>
   </head>
   <body>
-    <main>
-      <h1>Settings</h1>
+    <div class="settings-container">
+      <div class="settings-content">
+        <h1>Settings</h1>
 
-      <div class="provider-tabs" role="tablist" aria-label="AI provider">
-        <button
-          class="provider-tab active"
-          type="button"
-          role="tab"
-          data-provider="anthropic"
-          aria-selected="true"
-        >
-          <div class="provider-tab-name">Anthropic</div>
-          <div class="provider-tab-subtitle">Cloud · requires API key</div>
-        </button>
-        <button
-          class="provider-tab"
-          type="button"
-          role="tab"
-          data-provider="openai"
-          aria-selected="false"
-        >
-          <div class="provider-tab-name">OpenAI</div>
-          <div class="provider-tab-subtitle">Cloud · requires API key</div>
-        </button>
-        <button
-          class="provider-tab"
-          type="button"
-          role="tab"
-          data-provider="local"
-          aria-selected="false"
-        >
-          <div class="provider-tab-name">Local Server</div>
-          <div class="provider-tab-subtitle">Free · no API key · offline</div>
-        </button>
+        <div class="provider-tabs" role="tablist" aria-label="AI provider">
+          <button
+            class="provider-tab active"
+            type="button"
+            role="tab"
+            data-provider="anthropic"
+            aria-selected="true"
+          >
+            <div class="provider-tab-name">Anthropic</div>
+            <div class="provider-tab-subtitle">Cloud · requires API key</div>
+          </button>
+          <button
+            class="provider-tab"
+            type="button"
+            role="tab"
+            data-provider="openai"
+            aria-selected="false"
+          >
+            <div class="provider-tab-name">OpenAI</div>
+            <div class="provider-tab-subtitle">Cloud · requires API key</div>
+          </button>
+          <button
+            class="provider-tab"
+            type="button"
+            role="tab"
+            data-provider="local"
+            aria-selected="false"
+          >
+            <div class="provider-tab-name">Local Server</div>
+            <div class="provider-tab-subtitle">Free · no API key · offline</div>
+          </button>
+        </div>
+
+        <section class="provider-section" data-provider="anthropic">
+          <div class="field">
+            <label for="anthropic-api-key">API Key</label>
+            <div class="row inline">
+              <input
+                id="anthropic-api-key"
+                type="password"
+                placeholder="sk-ant-..."
+                spellcheck="false"
+                autocomplete="off"
+              />
+              <button
+                id="anthropic-reveal-btn"
+                class="ghost"
+                type="button"
+                title="Show / hide key"
+              >
+                Show
+              </button>
+            </div>
+          </div>
+
+          <div class="field">
+            <label for="anthropic-model-select">Model</label>
+            <select id="anthropic-model-select"></select>
+            <label for="anthropic-custom-model" class="small">Custom model</label>
+            <div class="row inline">
+              <input
+                id="anthropic-custom-model"
+                type="text"
+                placeholder="claude-..."
+                spellcheck="false"
+                autocomplete="off"
+              />
+              <button id="anthropic-add-model-btn" class="small" type="button">Add</button>
+            </div>
+          </div>
+
+          <div class="row inline test-row">
+            <button id="anthropic-test-btn" class="small" type="button">Test Connection</button>
+            <span class="test-result" id="anthropic-test-result"></span>
+          </div>
+        </section>
+
+        <section class="provider-section hidden" data-provider="openai">
+          <div class="field">
+            <label for="openai-api-key">API Key</label>
+            <div class="row inline">
+              <input
+                id="openai-api-key"
+                type="password"
+                placeholder="sk-..."
+                spellcheck="false"
+                autocomplete="off"
+              />
+              <button
+                id="openai-reveal-btn"
+                class="ghost"
+                type="button"
+                title="Show / hide key"
+              >
+                Show
+              </button>
+            </div>
+          </div>
+
+          <div class="field">
+            <label for="openai-model-select">Model</label>
+            <select id="openai-model-select"></select>
+            <label for="openai-custom-model" class="small">Custom model</label>
+            <div class="row inline">
+              <input
+                id="openai-custom-model"
+                type="text"
+                placeholder="gpt-..."
+                spellcheck="false"
+                autocomplete="off"
+              />
+              <button id="openai-add-model-btn" class="small" type="button">Add</button>
+            </div>
+          </div>
+
+          <div class="row inline test-row">
+            <button id="openai-test-btn" class="small" type="button">Test Connection</button>
+            <span class="test-result" id="openai-test-result"></span>
+          </div>
+        </section>
+
+        <section class="provider-section hidden" data-provider="local">
+          <div class="field">
+            <label for="local-endpoint">Server URL</label>
+            <input
+              id="local-endpoint"
+              type="text"
+              placeholder="http://127.0.0.1:11434"
+              spellcheck="false"
+              autocomplete="off"
+            />
+          </div>
+
+          <div class="field">
+            <label for="local-model">Model</label>
+            <input
+              id="local-model"
+              type="text"
+              placeholder="apple-foundationmodel"
+              spellcheck="false"
+              autocomplete="off"
+            />
+          </div>
+
+          <div class="row inline test-row">
+            <button id="local-test-btn" class="small" type="button">Test Connection</button>
+            <span class="test-result" id="local-test-result"></span>
+          </div>
+
+          <p class="help">
+            Works with: Apfel (apfel --serve), Ollama (ollama serve), LM Studio,
+            LocalAI, or any OpenAI-compatible server. No API key needed. Runs
+            entirely on your machine.
+          </p>
+        </section>
+
+        <div class="field">
+          <div class="label-row">
+            <label for="system-prompt">System Prompt</label>
+            <button id="reset-btn" class="link" type="button">Restore Default</button>
+          </div>
+          <textarea id="system-prompt" rows="8" spellcheck="false"></textarea>
+        </div>
       </div>
 
-      <section class="provider-section" data-provider="anthropic">
-        <div class="field">
-          <label for="anthropic-api-key">API Key</label>
-          <div class="row inline">
-            <input
-              id="anthropic-api-key"
-              type="password"
-              placeholder="sk-ant-..."
-              spellcheck="false"
-              autocomplete="off"
-            />
-            <button
-              id="anthropic-reveal-btn"
-              class="ghost"
-              type="button"
-              title="Show / hide key"
-            >
-              Show
-            </button>
-          </div>
-        </div>
-
-        <div class="field">
-          <label for="anthropic-model-select">Model</label>
-          <select id="anthropic-model-select"></select>
-          <label for="anthropic-custom-model" class="small">Custom model</label>
-          <div class="row inline">
-            <input
-              id="anthropic-custom-model"
-              type="text"
-              placeholder="claude-..."
-              spellcheck="false"
-              autocomplete="off"
-            />
-            <button id="anthropic-add-model-btn" class="small" type="button">Add</button>
-          </div>
-        </div>
-
-        <div class="row inline test-row">
-          <button id="anthropic-test-btn" class="small" type="button">Test Connection</button>
-          <span class="test-result" id="anthropic-test-result"></span>
-        </div>
-      </section>
-
-      <section class="provider-section hidden" data-provider="openai">
-        <div class="field">
-          <label for="openai-api-key">API Key</label>
-          <div class="row inline">
-            <input
-              id="openai-api-key"
-              type="password"
-              placeholder="sk-..."
-              spellcheck="false"
-              autocomplete="off"
-            />
-            <button
-              id="openai-reveal-btn"
-              class="ghost"
-              type="button"
-              title="Show / hide key"
-            >
-              Show
-            </button>
-          </div>
-        </div>
-
-        <div class="field">
-          <label for="openai-model-select">Model</label>
-          <select id="openai-model-select"></select>
-          <label for="openai-custom-model" class="small">Custom model</label>
-          <div class="row inline">
-            <input
-              id="openai-custom-model"
-              type="text"
-              placeholder="gpt-..."
-              spellcheck="false"
-              autocomplete="off"
-            />
-            <button id="openai-add-model-btn" class="small" type="button">Add</button>
-          </div>
-        </div>
-
-        <div class="row inline test-row">
-          <button id="openai-test-btn" class="small" type="button">Test Connection</button>
-          <span class="test-result" id="openai-test-result"></span>
-        </div>
-      </section>
-
-      <section class="provider-section hidden" data-provider="local">
-        <div class="field">
-          <label for="local-endpoint">Server URL</label>
-          <input
-            id="local-endpoint"
-            type="text"
-            placeholder="http://127.0.0.1:11434"
-            spellcheck="false"
-            autocomplete="off"
-          />
-        </div>
-
-        <div class="field">
-          <label for="local-model">Model</label>
-          <input
-            id="local-model"
-            type="text"
-            placeholder="apple-foundationmodel"
-            spellcheck="false"
-            autocomplete="off"
-          />
-        </div>
-
-        <div class="row inline test-row">
-          <button id="local-test-btn" class="small" type="button">Test Connection</button>
-          <span class="test-result" id="local-test-result"></span>
-        </div>
-
-        <p class="help">
-          Works with: Apfel (apfel --serve), Ollama (ollama serve), LM Studio,
-          LocalAI, or any OpenAI-compatible server. No API key needed. Runs
-          entirely on your machine.
-        </p>
-      </section>
-
-      <div class="field grow">
-        <div class="label-row">
-          <label for="system-prompt">System Prompt</label>
-          <button id="reset-btn" class="link" type="button">Restore Default</button>
-        </div>
-        <textarea id="system-prompt" rows="5" spellcheck="false"></textarea>
-      </div>
-
-      <div class="actions">
+      <div class="settings-buttons">
         <span id="status"></span>
         <button id="cancel-btn" class="secondary" type="button">Cancel</button>
         <button id="save-btn" class="primary" type="button">Save</button>
       </div>
-    </main>
+    </div>
   </body>
 </html>

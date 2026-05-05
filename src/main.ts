@@ -10,6 +10,7 @@ import {
   clipboard,
   shell,
   dialog,
+  screen,
 } from 'electron';
 import path from 'node:path';
 import started from 'electron-squirrel-startup';
@@ -37,7 +38,10 @@ const INPUT_WINDOW_HEIGHT = 100;
 const FADE_STEP = 0.1;
 const FADE_INTERVAL_MS = 15;
 const SETTINGS_WINDOW_WIDTH = 500;
-const SETTINGS_WINDOW_HEIGHT = 480;
+const SETTINGS_WINDOW_HEIGHT = 620;
+const SETTINGS_WINDOW_MIN_WIDTH = 500;
+const SETTINGS_WINDOW_MAX_WIDTH = 600;
+const SETTINGS_WINDOW_MIN_HEIGHT = 400;
 
 let mainWindow: BrowserWindow | null = null;
 let settingsWindow: BrowserWindow | null = null;
@@ -52,6 +56,35 @@ const stopFade = (): void => {
   }
 };
 
+// Cursor-based display detection works across multiple monitors and through
+// fullscreen Spaces — far more reliable than the focused-window heuristic.
+const getActiveDisplay = (): Electron.Display => {
+  const cursorPoint = screen.getCursorScreenPoint();
+  return screen.getDisplayNearestPoint(cursorPoint);
+};
+
+// Position the overlay one-third from the top of the active display's work
+// area (Spotlight-style) instead of dead center, so results have room to grow.
+const centerOnActiveDisplay = (): void => {
+  if (!mainWindow) return;
+  const display = getActiveDisplay();
+  const { width: screenWidth, height: screenHeight, x: screenX, y: screenY } =
+    display.workArea;
+  const [windowWidth, windowHeight] = mainWindow.getSize();
+  const x = Math.round(screenX + (screenWidth - windowWidth) / 2);
+  const y = Math.round(screenY + (screenHeight - windowHeight) / 3);
+  mainWindow.setPosition(x, y);
+};
+
+const applyOverlayLevel = (): void => {
+  if (!mainWindow) return;
+  // 'screen-saver' is the highest standard level — required to float above
+  // fullscreen Spaces on macOS. macOS sometimes resets these flags between
+  // Space switches, so re-apply on every show.
+  mainWindow.setAlwaysOnTop(true, 'screen-saver');
+  mainWindow.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
+};
+
 const createWindow = (): void => {
   mainWindow = new BrowserWindow({
     width: WINDOW_WIDTH,
@@ -63,7 +96,6 @@ const createWindow = (): void => {
     transparent: true,
     backgroundColor: '#00000000',
     show: false,
-    center: true,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
@@ -71,8 +103,7 @@ const createWindow = (): void => {
     },
   });
 
-  mainWindow.setAlwaysOnTop(true, 'screen-saver');
-  mainWindow.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
+  applyOverlayLevel();
 
   if (MAIN_WINDOW_VITE_DEV_SERVER_URL) {
     mainWindow.loadURL(MAIN_WINDOW_VITE_DEV_SERVER_URL);
@@ -87,7 +118,8 @@ const createWindow = (): void => {
 const showAndFocus = (): void => {
   if (!mainWindow) return;
   const win = mainWindow;
-  win.center();
+  applyOverlayLevel();
+  centerOnActiveDisplay();
   stopFade();
 
   if (process.platform === 'darwin') {
@@ -179,9 +211,12 @@ const openSettings = (): void => {
   settingsWindow = new BrowserWindow({
     width: SETTINGS_WINDOW_WIDTH,
     height: SETTINGS_WINDOW_HEIGHT,
+    minWidth: SETTINGS_WINDOW_MIN_WIDTH,
+    maxWidth: SETTINGS_WINDOW_MAX_WIDTH,
+    minHeight: SETTINGS_WINDOW_MIN_HEIGHT,
     title: 'Quick Prompt Settings',
     frame: true,
-    resizable: false,
+    resizable: true,
     alwaysOnTop: true,
     modal: false,
     minimizable: false,
@@ -767,7 +802,7 @@ ipcMain.on('hide-window', () => {
 ipcMain.on('resize-window', (_event, height: number) => {
   if (!mainWindow) return;
   mainWindow.setSize(WINDOW_WIDTH, Math.max(1, Math.round(height)));
-  mainWindow.center();
+  centerOnActiveDisplay();
 });
 
 ipcMain.on('open-settings', () => openSettings());

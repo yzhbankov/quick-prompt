@@ -21,13 +21,31 @@ body {
   overflow: hidden;
 }
 
-main {
+.settings-container {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
   padding: 16px 20px;
   box-sizing: border-box;
-  height: 100vh;
+}
+
+.settings-content {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
   display: flex;
   flex-direction: column;
   gap: 12px;
+  padding-bottom: 12px;
+}
+
+.settings-buttons {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 h1 {
@@ -42,10 +60,6 @@ h1 {
   gap: 4px;
 }
 
-.field.grow {
-  flex: 1;
-  min-height: 0;
-}
 
 label {
   display: block;
@@ -99,9 +113,9 @@ select {
 textarea {
   font-family: 'SF Mono', Menlo, monospace;
   font-size: 12.5px;
-  resize: none;
-  flex: 1;
-  min-height: 0;
+  resize: vertical;
+  min-height: 100px;
+  max-height: 400px;
   line-height: 1.45;
 }
 
@@ -120,12 +134,6 @@ textarea {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
-}
-
-.actions {
-  display: flex;
-  align-items: center;
-  gap: 8px;
 }
 
 #status {
