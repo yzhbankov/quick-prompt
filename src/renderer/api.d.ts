@@ -7,11 +7,19 @@ interface CheckTextResponse {
   error?: string;
 }
 
+type Provider = 'anthropic' | 'openai' | 'local';
+
 interface Settings {
-  apiKey: string;
+  provider: Provider;
+  anthropicApiKey: string;
+  anthropicModel: string;
+  anthropicAvailableModels: string[];
+  openaiApiKey: string;
+  openaiModel: string;
+  openaiAvailableModels: string[];
+  localEndpoint: string;
+  localModel: string;
   systemPrompt: string;
-  model: string;
-  availableModels: string[];
   showInDock: boolean;
 }
 
@@ -21,22 +29,37 @@ interface SaveSettingsResult {
 
 interface QuickPromptApi {
   checkText: (text: string) => Promise<CheckTextResponse>;
-  isApiKeyMissing: () => Promise<boolean>;
+  isProviderConfigured: () => Promise<boolean>;
   hideWindow: () => void;
   copyToClipboard: (text: string) => void;
   getClipboardText: () => Promise<string>;
   onFocusInput: (callback: () => void) => void;
   resizeWindow: (height: number) => void;
   openSettings: () => void;
-  getModel: () => Promise<string>;
+  getActiveModel: () => Promise<string>;
+  getProvider: () => Promise<Provider>;
   getAppVersion: () => Promise<string>;
   onSettingsUpdated: (callback: (settings: Settings) => void) => void;
+}
+
+interface TestConnectionParams {
+  provider: Provider;
+  apiKey?: string;
+  endpoint?: string;
+}
+
+interface TestConnectionResult {
+  success: boolean;
+  message?: string;
+  error?: string;
+  models?: string[];
 }
 
 interface QuickPromptSettingsApi {
   getSettings: () => Promise<Settings>;
   saveSettings: (data: Partial<Settings>) => Promise<SaveSettingsResult>;
   getDefaultSystemPrompt: () => Promise<string>;
+  testConnection: (params: TestConnectionParams) => Promise<TestConnectionResult>;
   closeSettings: () => void;
 }
 

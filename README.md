@@ -139,6 +139,43 @@ with `ANTHROPIC_API_KEY=your-key-here`
 export ANTHROPIC_API_KEY=your-key-here
 ```
 
+## Providers
+
+Quick Prompt supports three AI providers. Switch between them in Settings (⌘,).
+
+### Anthropic (cloud)
+
+Best quality for text tasks. Requires an API key from https://console.anthropic.com
+Models: Claude Sonnet 4, Claude Opus 4, Claude Haiku 4.5, Claude Sonnet 4.5
+Cost: ~$0.001-0.01 per request depending on model and text length
+
+### OpenAI (cloud)
+
+Requires an API key from https://platform.openai.com/api-keys
+Models: GPT-4o, GPT-4o-mini, GPT-4.1, GPT-4.1-mini, GPT-4.1-nano, o3-mini
+Cost: varies by model
+
+### Local server (free, offline, private)
+
+Connect to any OpenAI-compatible local server. No API key, no internet,
+no cost. Your text never leaves your machine.
+
+**Apple Intelligence via Apfel (macOS 26+, Apple Silicon):**
+1. Install: https://github.com/Arthur-Ficial/apfel
+2. Run: apfel --serve
+3. Settings → Local Server → URL: http://127.0.0.1:11434 → Model: apple-foundationmodel
+
+**Ollama:**
+1. Install: https://ollama.ai
+2. Pull a model: ollama pull llama3
+3. Run: ollama serve
+4. Settings → Local Server → URL: http://127.0.0.1:11434 → Model: llama3
+
+**LM Studio:**
+1. Install: https://lmstudio.ai
+2. Download a model, start the local server
+3. Settings → Local Server → URL: http://127.0.0.1:1234 → Model: (shown in LM Studio)
+
 ## Customizing the prompt
 
 The simplest way is to open the app and press **⌘,** for Settings — edit the **System Prompt** field and click Save.

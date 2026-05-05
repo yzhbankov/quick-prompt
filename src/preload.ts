@@ -7,19 +7,27 @@ interface CheckTextResponse {
   error?: string;
 }
 
+type Provider = 'anthropic' | 'openai' | 'local';
+
 interface SettingsPayload {
-  apiKey: string;
+  provider: Provider;
+  anthropicApiKey: string;
+  anthropicModel: string;
+  anthropicAvailableModels: string[];
+  openaiApiKey: string;
+  openaiModel: string;
+  openaiAvailableModels: string[];
+  localEndpoint: string;
+  localModel: string;
   systemPrompt: string;
-  model: string;
-  availableModels: string[];
   showInDock: boolean;
 }
 
 const api = {
   checkText: (text: string): Promise<CheckTextResponse> =>
     ipcRenderer.invoke('check-text', text),
-  isApiKeyMissing: (): Promise<boolean> =>
-    ipcRenderer.invoke('is-api-key-missing'),
+  isProviderConfigured: (): Promise<boolean> =>
+    ipcRenderer.invoke('is-provider-configured'),
   hideWindow: (): void => {
     ipcRenderer.send('hide-window');
   },
@@ -37,7 +45,8 @@ const api = {
   openSettings: (): void => {
     ipcRenderer.send('open-settings');
   },
-  getModel: (): Promise<string> => ipcRenderer.invoke('get-model'),
+  getActiveModel: (): Promise<string> => ipcRenderer.invoke('get-active-model'),
+  getProvider: (): Promise<Provider> => ipcRenderer.invoke('get-provider'),
   getAppVersion: (): Promise<string> => ipcRenderer.invoke('get-app-version'),
   onSettingsUpdated: (callback: (settings: SettingsPayload) => void): void => {
     ipcRenderer.on('settings-updated', (_event, settings: SettingsPayload) => callback(settings));

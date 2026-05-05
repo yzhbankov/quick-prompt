@@ -2,16 +2,23 @@
 import './styles.css';
 
 type UiState = 'input' | 'loading' | 'result';
+type Provider = 'anthropic' | 'openai' | 'local';
 
 interface SettingsPayload {
-  apiKey: string;
+  provider: Provider;
+  anthropicApiKey: string;
+  anthropicModel: string;
+  anthropicAvailableModels: string[];
+  openaiApiKey: string;
+  openaiModel: string;
+  openaiAvailableModels: string[];
+  localEndpoint: string;
+  localModel: string;
   systemPrompt: string;
-  model: string;
-  availableModels: string[];
+  showInDock: boolean;
 }
 
 const DEFAULT_PLACEHOLDER = 'Type or paste text...';
-const MISSING_KEY_PLACEHOLDER = '⚠ API key not set. Press ⌘, for Settings';
 const HINT_INPUT = '↵ Check · esc Dismiss · ⌘, Settings';
 const HINT_LOADING = 'Waiting for response...';
 const HINT_RESULT = '↵ New · esc Dismiss · ⌘, Settings';
@@ -24,7 +31,8 @@ const STATUS_CLEAR_DELAY_MS = 2000;
 let uiState: UiState = 'input';
 let originalText = '';
 let statusClearTimer: number | null = null;
-let apiKeyMissing = false;
+let providerConfigured = false;
+let currentProvider: Provider = 'anthropic';
 
 let input: HTMLInputElement;
 let resultEl: HTMLDivElement;
@@ -34,15 +42,22 @@ let modelLabel: HTMLDivElement;
 let versionLabel: HTMLDivElement;
 let wrapper: HTMLElement;
 
-const formatModelName = (model: string): string => {
+const missingPlaceholderFor = (provider: Provider): string => {
+  if (provider === 'openai') return '⚠ OpenAI API key not set. Press ⌘, for Settings';
+  return '⚠ Anthropic API key not set. Press ⌘, for Settings';
+};
+
+const formatModelName = (model: string, provider: Provider): string => {
+  if (provider === 'local') return `${model} · local`;
+  if (provider === 'openai') return model;
   const match = /^claude-([a-z]+)-(\d+(?:-\d+)*)-\d{8}$/.exec(model);
   if (!match) return model;
   const [, family, version] = match;
   return `${family} ${version.replace(/-/g, '.')}`;
 };
 
-const setModelLabel = (model: string): void => {
-  modelLabel.textContent = formatModelName(model);
+const setModelLabel = (model: string, provider: Provider): void => {
+  modelLabel.textContent = formatModelName(model, provider);
 };
 
 const clearStatusTimer = (): void => {
@@ -52,15 +67,18 @@ const clearStatusTimer = (): void => {
   }
 };
 
+// Local provider is always considered enabled in the overlay.
+const isInputDisabled = (): boolean =>
+  currentProvider !== 'local' && !providerConfigured;
+
+const placeholderForCurrentState = (): string =>
+  isInputDisabled() ? missingPlaceholderFor(currentProvider) : DEFAULT_PLACEHOLDER;
+
 const applyKeyState = (): void => {
   if (uiState !== 'input') return;
-  if (apiKeyMissing) {
-    input.disabled = true;
-    input.placeholder = MISSING_KEY_PLACEHOLDER;
-  } else if (input.disabled) {
-    input.disabled = false;
-    input.placeholder = DEFAULT_PLACEHOLDER;
-  }
+  const disabled = isInputDisabled();
+  input.disabled = disabled;
+  input.placeholder = disabled ? missingPlaceholderFor(currentProvider) : DEFAULT_PLACEHOLDER;
 };
 
 const resetToInputState = (): void => {
@@ -68,8 +86,8 @@ const resetToInputState = (): void => {
   clearStatusTimer();
   originalText = '';
   input.value = '';
-  input.disabled = apiKeyMissing;
-  input.placeholder = apiKeyMissing ? MISSING_KEY_PLACEHOLDER : DEFAULT_PLACEHOLDER;
+  input.disabled = isInputDisabled();
+  input.placeholder = placeholderForCurrentState();
   resultEl.hidden = true;
   resultEl.textContent = '';
   resultEl.classList.remove('error');
@@ -140,7 +158,7 @@ const onEnter = async (): Promise<void> => {
     goInput();
     return;
   }
-  if (apiKeyMissing) return;
+  if (isInputDisabled()) return;
   const value = input.value.trim();
   if (!value) return;
   goLoading();
@@ -159,12 +177,16 @@ const onEscape = (): void => {
   window.api.hideWindow();
 };
 
+const refreshConfiguredState = async (): Promise<void> => {
+  providerConfigured = await window.api.isProviderConfigured();
+  applyKeyState();
+};
+
 const handleFocusInput = async (): Promise<void> => {
   resetToInputState();
 
-  apiKeyMissing = await window.api.isApiKeyMissing();
-  applyKeyState();
-  if (apiKeyMissing) {
+  await refreshConfiguredState();
+  if (isInputDisabled()) {
     input.focus();
     return;
   }
@@ -179,6 +201,18 @@ const handleFocusInput = async (): Promise<void> => {
   }
   input.focus();
   input.select();
+};
+
+const activeModelFromSettings = (settings: SettingsPayload): string => {
+  if (settings.provider === 'openai') return settings.openaiModel;
+  if (settings.provider === 'local') return settings.localModel;
+  return settings.anthropicModel;
+};
+
+const isProviderConfiguredFromSettings = (settings: SettingsPayload): boolean => {
+  if (settings.provider === 'local') return settings.localEndpoint.trim().length > 0;
+  if (settings.provider === 'openai') return settings.openaiApiKey.length > 0;
+  return settings.anthropicApiKey.length > 0;
 };
 
 window.addEventListener('DOMContentLoaded', async () => {
@@ -197,19 +231,23 @@ window.addEventListener('DOMContentLoaded', async () => {
   });
 
   window.api.onSettingsUpdated((settings: SettingsPayload) => {
-    apiKeyMissing = !settings || settings.apiKey === '';
+    if (!settings) return;
+    currentProvider = settings.provider;
+    providerConfigured = isProviderConfiguredFromSettings(settings);
     applyKeyState();
-    if (settings && typeof settings.model === 'string') {
-      setModelLabel(settings.model);
-    }
+    setModelLabel(activeModelFromSettings(settings), settings.provider);
   });
 
-  apiKeyMissing = await window.api.isApiKeyMissing();
-  applyKeyState();
+  try {
+    currentProvider = await window.api.getProvider();
+  } catch (err: unknown) {
+    console.error('[quick-prompt] Failed to read initial provider:', err);
+  }
+  await refreshConfiguredState();
 
   try {
-    const initialModel = await window.api.getModel();
-    setModelLabel(initialModel);
+    const initialModel = await window.api.getActiveModel();
+    setModelLabel(initialModel, currentProvider);
   } catch (err: unknown) {
     console.error('[quick-prompt] Failed to read initial model:', err);
   }

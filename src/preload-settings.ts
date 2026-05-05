@@ -1,16 +1,37 @@
 // Preload for the settings window: exposes window.settingsApi via contextBridge.
 import { contextBridge, ipcRenderer } from 'electron';
 
+type Provider = 'anthropic' | 'openai' | 'local';
+
 interface Settings {
-  apiKey: string;
+  provider: Provider;
+  anthropicApiKey: string;
+  anthropicModel: string;
+  anthropicAvailableModels: string[];
+  openaiApiKey: string;
+  openaiModel: string;
+  openaiAvailableModels: string[];
+  localEndpoint: string;
+  localModel: string;
   systemPrompt: string;
-  model: string;
-  availableModels: string[];
   showInDock: boolean;
 }
 
 interface SaveSettingsResult {
   success: boolean;
+}
+
+interface TestConnectionParams {
+  provider: Provider;
+  apiKey?: string;
+  endpoint?: string;
+}
+
+interface TestConnectionResult {
+  success: boolean;
+  message?: string;
+  error?: string;
+  models?: string[];
 }
 
 const settingsApi = {
@@ -19,6 +40,8 @@ const settingsApi = {
     ipcRenderer.invoke('save-settings', data),
   getDefaultSystemPrompt: (): Promise<string> =>
     ipcRenderer.invoke('get-default-system-prompt'),
+  testConnection: (params: TestConnectionParams): Promise<TestConnectionResult> =>
+    ipcRenderer.invoke('test-connection', params),
   closeSettings: (): void => {
     ipcRenderer.send('close-settings');
   },

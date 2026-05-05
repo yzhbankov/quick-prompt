@@ -1,4 +1,4 @@
-// Electron main process: window, tray, global shortcut, settings, and Anthropic API IPC handlers.
+// Electron main process: window, tray, global shortcut, settings, and provider API IPC handlers.
 import {
   app,
   BrowserWindow,
@@ -14,16 +14,16 @@ import {
 import path from 'node:path';
 import started from 'electron-squirrel-startup';
 import {
-  DEFAULT_AVAILABLE_MODELS,
-  DEFAULT_MODEL,
+  DEFAULT_ANTHROPIC_AVAILABLE_MODELS,
+  DEFAULT_OPENAI_AVAILABLE_MODELS,
   DEFAULT_SYSTEM_PROMPT,
+  Provider,
   SettingsSchema,
-  getApiKey,
-  getModel,
+  getActiveModel,
+  getProvider,
   getSettings,
   getShowInDock,
-  getSystemPrompt,
-  isApiKeyMissing,
+  isProviderConfigured,
   saveSettings,
   setShowInDock,
 } from './settings';
@@ -37,7 +37,7 @@ const INPUT_WINDOW_HEIGHT = 100;
 const FADE_STEP = 0.1;
 const FADE_INTERVAL_MS = 15;
 const SETTINGS_WINDOW_WIDTH = 500;
-const SETTINGS_WINDOW_HEIGHT = 420;
+const SETTINGS_WINDOW_HEIGHT = 480;
 
 let mainWindow: BrowserWindow | null = null;
 let settingsWindow: BrowserWindow | null = null;
@@ -144,6 +144,17 @@ const hideOverlay = (): void => {
   }
 };
 
+// Like hideOverlay but never calls app.hide(), so the upcoming settings
+// window stays visible. Use this when transferring focus to settings.
+const hideOverlayWindowOnly = (): void => {
+  if (!mainWindow) return;
+  stopFade();
+  if (mainWindow.isVisible()) {
+    mainWindow.hide();
+    mainWindow.setSize(WINDOW_WIDTH, INPUT_WINDOW_HEIGHT);
+  }
+};
+
 const toggleWindow = (): void => {
   if (!mainWindow) return;
   if (mainWindow.isVisible()) {
@@ -154,8 +165,12 @@ const toggleWindow = (): void => {
 };
 
 const openSettings = (): void => {
+  hideOverlayWindowOnly();
+
   if (settingsWindow && !settingsWindow.isDestroyed()) {
     if (settingsWindow.isMinimized()) settingsWindow.restore();
+    settingsWindow.show();
+    settingsWindow.moveTop();
     settingsWindow.focus();
     if (process.platform === 'darwin') app.focus({ steal: true });
     return;
@@ -189,7 +204,10 @@ const openSettings = (): void => {
   });
 
   settingsWindow.once('ready-to-show', () => {
-    settingsWindow?.show();
+    if (!settingsWindow) return;
+    settingsWindow.show();
+    settingsWindow.moveTop();
+    settingsWindow.focus();
     if (process.platform === 'darwin') app.focus({ steal: true });
   });
 
@@ -383,7 +401,7 @@ const createTray = (): void => {
   refreshTrayMenu();
 };
 
-interface CheckTextResponse {
+interface ApiResult {
   success: boolean;
   text?: string;
   error?: string;
@@ -393,30 +411,38 @@ interface AnthropicResponse {
   content?: { text?: string }[];
 }
 
-const checkText = async (text: string): Promise<CheckTextResponse> => {
-  const apiKey = getApiKey();
-  if (apiKey === '') {
-    return {
-      success: false,
-      error: 'API key not configured. Open Settings (tray ▸ Settings… or ⌘,) to add it.',
-    };
-  }
+interface OpenAIChatResponse {
+  choices?: { message?: { content?: string } }[];
+}
 
+const REQUEST_TIMEOUT_MS = 30000;
+
+const stripTrailingSlash = (url: string): string => url.replace(/\/+$/, '');
+
+const isConnectionRefused = (err: unknown): boolean => {
+  if (!err || typeof err !== 'object') return false;
+  const e = err as { code?: unknown; cause?: { code?: unknown } };
+  return e.code === 'ECONNREFUSED' || e.cause?.code === 'ECONNREFUSED';
+};
+
+const callAnthropic = async (
+  text: string,
+  settings: SettingsSchema,
+): Promise<ApiResult> => {
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 30000);
-
+  const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
   try {
     const res = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-api-key': apiKey,
+        'x-api-key': settings.anthropicApiKey,
         'anthropic-version': '2023-06-01',
       },
       body: JSON.stringify({
-        model: getModel(),
+        model: settings.anthropicModel,
         max_tokens: 4096,
-        system: getSystemPrompt(),
+        system: settings.systemPrompt,
         messages: [{ role: 'user', content: text }],
       }),
       signal: controller.signal,
@@ -451,11 +477,283 @@ const checkText = async (text: string): Promise<CheckTextResponse> => {
   }
 };
 
+const callOpenAI = async (
+  text: string,
+  settings: SettingsSchema,
+): Promise<ApiResult> => {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+  try {
+    const res = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${settings.openaiApiKey}`,
+      },
+      body: JSON.stringify({
+        model: settings.openaiModel,
+        messages: [
+          { role: 'system', content: settings.systemPrompt },
+          { role: 'user', content: text },
+        ],
+      }),
+      signal: controller.signal,
+    });
+
+    if (!res.ok) {
+      const body = await res.text().catch(() => '');
+      const detail = body ? `: ${body.slice(0, 300)}` : '';
+      return {
+        success: false,
+        error: `OpenAI API request failed with status ${res.status}${detail}`,
+      };
+    }
+
+    const json = (await res.json()) as OpenAIChatResponse;
+    const result = json.choices?.[0]?.message?.content;
+    if (typeof result !== 'string') {
+      return {
+        success: false,
+        error: 'Unexpected response shape from OpenAI API',
+      };
+    }
+    return { success: true, text: result };
+  } catch (err: unknown) {
+    if (err instanceof Error && err.name === 'AbortError') {
+      return { success: false, error: 'Request timed out after 30 seconds' };
+    }
+    const msg = err instanceof Error ? err.message : String(err);
+    return { success: false, error: `Request failed: ${msg}` };
+  } finally {
+    clearTimeout(timeout);
+  }
+};
+
+const callLocal = async (
+  text: string,
+  settings: SettingsSchema,
+): Promise<ApiResult> => {
+  const endpoint = stripTrailingSlash(settings.localEndpoint);
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+  try {
+    const res = await fetch(`${endpoint}/v1/chat/completions`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: settings.localModel,
+        messages: [
+          { role: 'system', content: settings.systemPrompt },
+          { role: 'user', content: text },
+        ],
+        stream: false,
+      }),
+      signal: controller.signal,
+    });
+
+    if (!res.ok) {
+      const body = await res.text().catch(() => '');
+      const detail = body ? `: ${body.slice(0, 300)}` : '';
+      return {
+        success: false,
+        error: `Local server request failed with status ${res.status}${detail}`,
+      };
+    }
+
+    const json = (await res.json()) as OpenAIChatResponse;
+    const result = json.choices?.[0]?.message?.content;
+    if (typeof result !== 'string') {
+      return {
+        success: false,
+        error: 'Unexpected response shape from local server',
+      };
+    }
+    return { success: true, text: result };
+  } catch (err: unknown) {
+    if (err instanceof Error && err.name === 'AbortError') {
+      return { success: false, error: 'Request timed out after 30 seconds' };
+    }
+    if (isConnectionRefused(err)) {
+      return {
+        success: false,
+        error: `Cannot connect to local server at ${endpoint}. Make sure the server is running (e.g. apfel --serve, ollama serve, or LM Studio).`,
+      };
+    }
+    const msg = err instanceof Error ? err.message : String(err);
+    return { success: false, error: `Request failed: ${msg}` };
+  } finally {
+    clearTimeout(timeout);
+  }
+};
+
+const checkText = async (text: string): Promise<ApiResult> => {
+  if (!isProviderConfigured()) {
+    return {
+      success: false,
+      error: 'Provider not configured. Open Settings (tray ▸ Settings… or ⌘,) to set it up.',
+    };
+  }
+
+  const settings = getSettings();
+  switch (settings.provider) {
+    case 'anthropic':
+      return callAnthropic(text, settings);
+    case 'openai':
+      return callOpenAI(text, settings);
+    case 'local':
+      return callLocal(text, settings);
+    default:
+      return { success: false, error: `Unknown provider: ${String(settings.provider)}` };
+  }
+};
+
+interface TestConnectionParams {
+  provider: Provider;
+  apiKey?: string;
+  endpoint?: string;
+}
+
+interface TestConnectionResult {
+  success: boolean;
+  message?: string;
+  error?: string;
+  models?: string[];
+}
+
+const TEST_TIMEOUT_MS = 5000;
+
+interface OpenAIModelsResponse {
+  data?: { id?: string }[];
+}
+
+const extractModelIds = (json: unknown): string[] => {
+  if (!json || typeof json !== 'object') return [];
+  const data = (json as OpenAIModelsResponse).data;
+  if (!Array.isArray(data)) return [];
+  return data
+    .map((m) => (m && typeof m.id === 'string' ? m.id : null))
+    .filter((id): id is string => id !== null);
+};
+
+const testAnthropic = async (apiKey: string): Promise<TestConnectionResult> => {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), TEST_TIMEOUT_MS);
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+      },
+      body: JSON.stringify({
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: 1,
+        messages: [{ role: 'user', content: 'hi' }],
+      }),
+      signal: controller.signal,
+    });
+    if (res.status === 200) {
+      return { success: true, message: 'API key valid' };
+    }
+    if (res.status === 401) {
+      return { success: false, error: 'Invalid API key' };
+    }
+    const body = await res.text().catch(() => '');
+    const detail = body ? `: ${body.slice(0, 300)}` : '';
+    return { success: false, error: `Anthropic test failed with status ${res.status}${detail}` };
+  } catch (err: unknown) {
+    if (err instanceof Error && err.name === 'AbortError') {
+      return { success: false, error: 'Request timed out after 5 seconds' };
+    }
+    const msg = err instanceof Error ? err.message : String(err);
+    return { success: false, error: msg };
+  } finally {
+    clearTimeout(timeout);
+  }
+};
+
+const testOpenAI = async (apiKey: string): Promise<TestConnectionResult> => {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), TEST_TIMEOUT_MS);
+  try {
+    const res = await fetch('https://api.openai.com/v1/models', {
+      method: 'GET',
+      headers: { Authorization: `Bearer ${apiKey}` },
+      signal: controller.signal,
+    });
+    if (res.status === 200) {
+      const json = await res.json().catch(() => ({}));
+      return { success: true, message: 'API key valid', models: extractModelIds(json) };
+    }
+    if (res.status === 401) {
+      return { success: false, error: 'Invalid API key' };
+    }
+    const body = await res.text().catch(() => '');
+    const detail = body ? `: ${body.slice(0, 300)}` : '';
+    return { success: false, error: `OpenAI test failed with status ${res.status}${detail}` };
+  } catch (err: unknown) {
+    if (err instanceof Error && err.name === 'AbortError') {
+      return { success: false, error: 'Request timed out after 5 seconds' };
+    }
+    const msg = err instanceof Error ? err.message : String(err);
+    return { success: false, error: msg };
+  } finally {
+    clearTimeout(timeout);
+  }
+};
+
+const testLocal = async (rawEndpoint: string): Promise<TestConnectionResult> => {
+  const endpoint = stripTrailingSlash(rawEndpoint);
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), TEST_TIMEOUT_MS);
+  try {
+    const res = await fetch(`${endpoint}/v1/models`, {
+      method: 'GET',
+      signal: controller.signal,
+    });
+    if (res.status === 200) {
+      const json = await res.json().catch(() => ({}));
+      return { success: true, message: 'Connected', models: extractModelIds(json) };
+    }
+    const body = await res.text().catch(() => '');
+    const detail = body ? `: ${body.slice(0, 300)}` : '';
+    return { success: false, error: `Local server returned status ${res.status}${detail}` };
+  } catch (err: unknown) {
+    if (err instanceof Error && err.name === 'AbortError') {
+      return { success: false, error: 'Request timed out after 5 seconds' };
+    }
+    if (isConnectionRefused(err)) {
+      return { success: false, error: `Cannot connect to ${endpoint}` };
+    }
+    const msg = err instanceof Error ? err.message : String(err);
+    return { success: false, error: msg };
+  } finally {
+    clearTimeout(timeout);
+  }
+};
+
+const testConnection = async (
+  params: TestConnectionParams,
+): Promise<TestConnectionResult> => {
+  switch (params.provider) {
+    case 'anthropic':
+      return testAnthropic(params.apiKey ?? '');
+    case 'openai':
+      return testOpenAI(params.apiKey ?? '');
+    case 'local':
+      return testLocal(params.endpoint ?? '');
+    default:
+      return { success: false, error: `Unknown provider: ${String(params.provider)}` };
+  }
+};
+
 // Overlay IPC
 ipcMain.handle('check-text', async (_event, text: string) => checkText(text));
-ipcMain.handle('is-api-key-missing', () => isApiKeyMissing());
+ipcMain.handle('is-provider-configured', () => isProviderConfigured());
 ipcMain.handle('clipboard-read', () => clipboard.readText());
-ipcMain.handle('get-model', () => getModel());
+ipcMain.handle('get-active-model', () => getActiveModel());
+ipcMain.handle('get-provider', () => getProvider());
 ipcMain.handle('get-app-version', () => app.getVersion());
 
 ipcMain.on('clipboard-write', (_event, text: string) => {
@@ -477,24 +775,53 @@ ipcMain.on('open-settings', () => openSettings());
 // Settings window IPC
 ipcMain.handle('get-settings', (): SettingsSchema => getSettings());
 ipcMain.handle('get-default-system-prompt', (): string => DEFAULT_SYSTEM_PROMPT);
+const isProvider = (value: unknown): value is Provider =>
+  value === 'anthropic' || value === 'openai' || value === 'local';
+
+const cleanModelList = (value: unknown): string[] | null => {
+  if (!Array.isArray(value)) return null;
+  const cleaned = value.filter((m): m is string => typeof m === 'string' && m.length > 0);
+  return cleaned.length > 0 ? cleaned : null;
+};
+
 ipcMain.handle('save-settings', (_event, data: Partial<SettingsSchema>) => {
   const current = getSettings();
   const next: SettingsSchema = {
-    apiKey: typeof data.apiKey === 'string' ? data.apiKey : current.apiKey,
+    provider: isProvider(data.provider) ? data.provider : current.provider,
+    anthropicApiKey:
+      typeof data.anthropicApiKey === 'string' ? data.anthropicApiKey : current.anthropicApiKey,
+    anthropicModel:
+      typeof data.anthropicModel === 'string' && data.anthropicModel.trim().length > 0
+        ? data.anthropicModel
+        : current.anthropicModel,
+    anthropicAvailableModels:
+      cleanModelList(data.anthropicAvailableModels) ??
+      (current.anthropicAvailableModels.length > 0
+        ? current.anthropicAvailableModels
+        : [...DEFAULT_ANTHROPIC_AVAILABLE_MODELS]),
+    openaiApiKey:
+      typeof data.openaiApiKey === 'string' ? data.openaiApiKey : current.openaiApiKey,
+    openaiModel:
+      typeof data.openaiModel === 'string' && data.openaiModel.trim().length > 0
+        ? data.openaiModel
+        : current.openaiModel,
+    openaiAvailableModels:
+      cleanModelList(data.openaiAvailableModels) ??
+      (current.openaiAvailableModels.length > 0
+        ? current.openaiAvailableModels
+        : [...DEFAULT_OPENAI_AVAILABLE_MODELS]),
+    localEndpoint:
+      typeof data.localEndpoint === 'string' && data.localEndpoint.trim().length > 0
+        ? data.localEndpoint
+        : current.localEndpoint,
+    localModel:
+      typeof data.localModel === 'string' && data.localModel.trim().length > 0
+        ? data.localModel
+        : current.localModel,
     systemPrompt:
       typeof data.systemPrompt === 'string' && data.systemPrompt.trim().length > 0
         ? data.systemPrompt
         : current.systemPrompt,
-    model:
-      typeof data.model === 'string' && data.model.trim().length > 0
-        ? data.model
-        : current.model,
-    availableModels:
-      Array.isArray(data.availableModels) && data.availableModels.length > 0
-        ? data.availableModels.filter((m): m is string => typeof m === 'string' && m.length > 0)
-        : current.availableModels.length > 0
-          ? current.availableModels
-          : [...DEFAULT_AVAILABLE_MODELS],
     showInDock:
       typeof data.showInDock === 'boolean' ? data.showInDock : current.showInDock,
   };
@@ -502,6 +829,9 @@ ipcMain.handle('save-settings', (_event, data: Partial<SettingsSchema>) => {
   broadcastSettingsUpdated(next);
   return { success: true };
 });
+ipcMain.handle('test-connection', async (_event, params: TestConnectionParams) =>
+  testConnection(params),
+);
 ipcMain.on('close-settings', () => closeSettings());
 
 app.on('ready', () => {

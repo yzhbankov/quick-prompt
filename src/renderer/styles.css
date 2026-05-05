@@ -30,7 +30,7 @@ body {
   top: 6px;
   right: 12px;
   font-size: 10px;
-  color: rgba(255, 255, 255, 0.2);
+  color: rgba(255, 255, 255, 0.45);
   pointer-events: none;
   user-select: none;
   letter-spacing: 0.02em;
@@ -42,7 +42,7 @@ body {
   top: 6px;
   left: 12px;
   font-size: 10px;
-  color: rgba(255, 255, 255, 0.2);
+  color: rgba(255, 255, 255, 0.45);
   pointer-events: none;
   user-select: none;
   letter-spacing: 0.02em;
@@ -97,6 +97,6 @@ body {
 
 #hint {
   font-size: 11px;
-  color: rgba(255, 255, 255, 0.25);
+  color: rgba(255, 255, 255, 0.5);
   margin-top: 8px;
 }
