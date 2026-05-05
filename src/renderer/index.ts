@@ -63,7 +63,7 @@ const applyKeyState = (): void => {
   }
 };
 
-const resetDom = (): void => {
+const resetToInputState = (): void => {
   uiState = 'input';
   clearStatusTimer();
   originalText = '';
@@ -76,11 +76,11 @@ const resetDom = (): void => {
   statusEl.hidden = true;
   statusEl.textContent = '';
   hintEl.textContent = HINT_INPUT;
+  window.api.resizeWindow(INPUT_WINDOW_HEIGHT);
 };
 
 const goInput = (): void => {
-  resetDom();
-  window.api.resizeWindow(INPUT_WINDOW_HEIGHT);
+  resetToInputState();
   input.focus();
 };
 
@@ -155,30 +155,29 @@ const onEnter = async (): Promise<void> => {
 
 const onEscape = (): void => {
   if (uiState === 'loading') return;
-  if (uiState === 'result') resetDom();
+  resetToInputState();
   window.api.hideWindow();
 };
 
 const handleFocusInput = async (): Promise<void> => {
-  input.focus();
+  resetToInputState();
 
   apiKeyMissing = await window.api.isApiKeyMissing();
   applyKeyState();
   if (apiKeyMissing) {
-    input.value = '';
+    input.focus();
     return;
   }
 
-  if (uiState === 'input' && input.value === '') {
-    try {
-      const clip = await window.api.getClipboardText();
-      if (clip.trim().length > 0) {
-        input.value = clip;
-      }
-    } catch (err: unknown) {
-      console.error('[quick-prompt] Failed to read clipboard:', err);
+  try {
+    const clip = await window.api.getClipboardText();
+    if (clip.trim().length > 0) {
+      input.value = clip;
     }
+  } catch (err: unknown) {
+    console.error('[quick-prompt] Failed to read clipboard:', err);
   }
+  input.focus();
   input.select();
 };
 
@@ -231,11 +230,7 @@ document.addEventListener('keydown', (e) => {
   }
   if (e.key === 'Escape') {
     e.preventDefault();
-    if (apiKeyMissing) {
-      window.api.hideWindow();
-    } else {
-      onEscape();
-    }
+    onEscape();
     return;
   }
   if (e.key === 'Enter') {

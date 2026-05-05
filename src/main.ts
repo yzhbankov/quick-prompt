@@ -131,11 +131,23 @@ const showAndFocus = (): void => {
   win.webContents.send('focus-input');
 };
 
+const isSettingsWindowVisible = (): boolean =>
+  !!settingsWindow && !settingsWindow.isDestroyed() && settingsWindow.isVisible();
+
+const hideOverlay = (): void => {
+  if (!mainWindow) return;
+  stopFade();
+  mainWindow.hide();
+  mainWindow.setSize(WINDOW_WIDTH, INPUT_WINDOW_HEIGHT);
+  if (process.platform === 'darwin' && !isSettingsWindowVisible()) {
+    app.hide();
+  }
+};
+
 const toggleWindow = (): void => {
   if (!mainWindow) return;
   if (mainWindow.isVisible()) {
-    stopFade();
-    mainWindow.hide();
+    hideOverlay();
   } else {
     showAndFocus();
   }
@@ -451,10 +463,7 @@ ipcMain.on('clipboard-write', (_event, text: string) => {
 });
 
 ipcMain.on('hide-window', () => {
-  if (!mainWindow) return;
-  stopFade();
-  mainWindow.hide();
-  mainWindow.setSize(WINDOW_WIDTH, INPUT_WINDOW_HEIGHT);
+  hideOverlay();
 });
 
 ipcMain.on('resize-window', (_event, height: number) => {
