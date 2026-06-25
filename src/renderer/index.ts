@@ -8,10 +8,8 @@ interface SettingsPayload {
   provider: Provider;
   anthropicApiKey: string;
   anthropicModel: string;
-  anthropicAvailableModels: string[];
   openaiApiKey: string;
   openaiModel: string;
-  openaiAvailableModels: string[];
   localEndpoint: string;
   localModel: string;
   systemPrompt: string;

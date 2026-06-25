@@ -6,9 +6,7 @@ type Provider = 'anthropic' | 'openai' | 'local';
 interface ProviderControls {
   apiKeyInput: HTMLInputElement;
   revealBtn: HTMLButtonElement;
-  modelSelect: HTMLSelectElement;
-  customModelInput: HTMLInputElement;
-  addModelBtn: HTMLButtonElement;
+  modelInput: HTMLInputElement;
   testBtn: HTMLButtonElement;
   testResult: HTMLSpanElement;
 }
@@ -33,9 +31,7 @@ const sections = Array.from(
 const anthropic: ProviderControls = {
   apiKeyInput: $('anthropic-api-key'),
   revealBtn: $('anthropic-reveal-btn'),
-  modelSelect: $('anthropic-model-select'),
-  customModelInput: $('anthropic-custom-model'),
-  addModelBtn: $('anthropic-add-model-btn'),
+  modelInput: $('anthropic-model'),
   testBtn: $('anthropic-test-btn'),
   testResult: $('anthropic-test-result'),
 };
@@ -43,9 +39,7 @@ const anthropic: ProviderControls = {
 const openai: ProviderControls = {
   apiKeyInput: $('openai-api-key'),
   revealBtn: $('openai-reveal-btn'),
-  modelSelect: $('openai-model-select'),
-  customModelInput: $('openai-custom-model'),
-  addModelBtn: $('openai-add-model-btn'),
+  modelInput: $('openai-model'),
   testBtn: $('openai-test-btn'),
   testResult: $('openai-test-result'),
 };
@@ -64,8 +58,6 @@ const resetBtn = $<HTMLButtonElement>('reset-btn');
 const statusEl = $<HTMLSpanElement>('status');
 
 let activeProvider: Provider = 'anthropic';
-let anthropicAvailableModels: string[] = [];
-let openaiAvailableModels: string[] = [];
 let statusTimer: number | null = null;
 
 const showStatus = (msg: string, kind: 'success' | 'error' | '' = ''): void => {
@@ -86,21 +78,6 @@ const setTestResult = (
   el.className = kind ? `test-result ${kind}` : 'test-result';
 };
 
-const populateModelDropdown = (
-  select: HTMLSelectElement,
-  models: string[],
-  selected: string,
-): void => {
-  select.innerHTML = '';
-  for (const model of models) {
-    const opt = document.createElement('option');
-    opt.value = model;
-    opt.textContent = model;
-    if (model === selected) opt.selected = true;
-    select.appendChild(opt);
-  }
-};
-
 const setActiveProvider = (provider: Provider): void => {
   activeProvider = provider;
   for (const tab of tabs) {
@@ -118,32 +95,10 @@ const load = async (): Promise<void> => {
     const settings = await window.settingsApi.getSettings();
 
     anthropic.apiKeyInput.value = settings.anthropicApiKey;
-    anthropicAvailableModels = [...settings.anthropicAvailableModels];
-    if (
-      settings.anthropicModel &&
-      !anthropicAvailableModels.includes(settings.anthropicModel)
-    ) {
-      anthropicAvailableModels.push(settings.anthropicModel);
-    }
-    populateModelDropdown(
-      anthropic.modelSelect,
-      anthropicAvailableModels,
-      settings.anthropicModel,
-    );
+    anthropic.modelInput.value = settings.anthropicModel;
 
     openai.apiKeyInput.value = settings.openaiApiKey;
-    openaiAvailableModels = [...settings.openaiAvailableModels];
-    if (
-      settings.openaiModel &&
-      !openaiAvailableModels.includes(settings.openaiModel)
-    ) {
-      openaiAvailableModels.push(settings.openaiModel);
-    }
-    populateModelDropdown(
-      openai.modelSelect,
-      openaiAvailableModels,
-      settings.openaiModel,
-    );
+    openai.modelInput.value = settings.openaiModel;
 
     local.endpointInput.value = settings.localEndpoint;
     local.modelInput.value = settings.localModel;
@@ -155,48 +110,6 @@ const load = async (): Promise<void> => {
     const msg = err instanceof Error ? err.message : String(err);
     showStatus(`Failed to load: ${msg}`, 'error');
   }
-};
-
-const addCustomModel = (
-  controls: ProviderControls,
-  registry: 'anthropic' | 'openai',
-): void => {
-  const value = controls.customModelInput.value.trim();
-  if (value === '') return;
-  const list =
-    registry === 'anthropic' ? anthropicAvailableModels : openaiAvailableModels;
-  if (list.includes(value)) {
-    showStatus(`"${value}" is already in the list.`, 'error');
-    return;
-  }
-  const next = [...list, value];
-  if (registry === 'anthropic') {
-    anthropicAvailableModels = next;
-  } else {
-    openaiAvailableModels = next;
-  }
-  populateModelDropdown(controls.modelSelect, next, value);
-  controls.customModelInput.value = '';
-  showStatus('');
-};
-
-const mergeOpenAIModelsFromTest = (models: string[] | undefined): void => {
-  if (!Array.isArray(models) || models.length === 0) return;
-  const set = new Set(openaiAvailableModels);
-  let changed = false;
-  for (const id of models) {
-    if (!set.has(id)) {
-      set.add(id);
-      changed = true;
-    }
-  }
-  if (!changed) return;
-  openaiAvailableModels = [...set];
-  populateModelDropdown(
-    openai.modelSelect,
-    openaiAvailableModels,
-    openai.modelSelect.value,
-  );
 };
 
 const setTestPending = (
@@ -221,6 +134,7 @@ const testAnthropic = async (): Promise<void> => {
     const result = await window.settingsApi.testConnection({
       provider: 'anthropic',
       apiKey,
+      model: anthropic.modelInput.value.trim(),
     });
     if (result.success) {
       setTestResult(
@@ -250,9 +164,9 @@ const testOpenAI = async (): Promise<void> => {
     const result = await window.settingsApi.testConnection({
       provider: 'openai',
       apiKey,
+      model: openai.modelInput.value.trim(),
     });
     if (result.success) {
-      mergeOpenAIModelsFromTest(result.models);
       setTestResult(
         openai.testResult,
         `✓ ${result.message ?? 'API key valid'}`,
@@ -301,13 +215,25 @@ const testLocal = async (): Promise<void> => {
 };
 
 const validateForSave = (): string | null => {
-  if (activeProvider === 'anthropic' && anthropic.apiKeyInput.value.trim() === '') {
-    anthropic.apiKeyInput.focus();
-    return 'Anthropic API key is required.';
+  if (activeProvider === 'anthropic') {
+    if (anthropic.apiKeyInput.value.trim() === '') {
+      anthropic.apiKeyInput.focus();
+      return 'Anthropic API key is required.';
+    }
+    if (anthropic.modelInput.value.trim() === '') {
+      anthropic.modelInput.focus();
+      return 'Anthropic model is required.';
+    }
   }
-  if (activeProvider === 'openai' && openai.apiKeyInput.value.trim() === '') {
-    openai.apiKeyInput.focus();
-    return 'OpenAI API key is required.';
+  if (activeProvider === 'openai') {
+    if (openai.apiKeyInput.value.trim() === '') {
+      openai.apiKeyInput.focus();
+      return 'OpenAI API key is required.';
+    }
+    if (openai.modelInput.value.trim() === '') {
+      openai.modelInput.focus();
+      return 'OpenAI model is required.';
+    }
   }
   if (activeProvider === 'local' && local.endpointInput.value.trim() === '') {
     local.endpointInput.focus();
@@ -330,11 +256,9 @@ const save = async (): Promise<void> => {
     const result = await window.settingsApi.saveSettings({
       provider: activeProvider,
       anthropicApiKey: anthropic.apiKeyInput.value.trim(),
-      anthropicModel: anthropic.modelSelect.value,
-      anthropicAvailableModels,
+      anthropicModel: anthropic.modelInput.value.trim(),
       openaiApiKey: openai.apiKeyInput.value.trim(),
-      openaiModel: openai.modelSelect.value,
-      openaiAvailableModels,
+      openaiModel: openai.modelInput.value.trim(),
       localEndpoint: local.endpointInput.value.trim(),
       localModel: local.modelInput.value.trim(),
       systemPrompt: promptTextarea.value,
@@ -388,26 +312,6 @@ saveBtn.addEventListener('click', () => void save());
 cancelBtn.addEventListener('click', cancel);
 resetBtn.addEventListener('click', () => void restoreDefaultPrompt());
 
-anthropic.addModelBtn.addEventListener('click', () =>
-  addCustomModel(anthropic, 'anthropic'),
-);
-openai.addModelBtn.addEventListener('click', () =>
-  addCustomModel(openai, 'openai'),
-);
-
-anthropic.customModelInput.addEventListener('keydown', (e) => {
-  if (e.key === 'Enter') {
-    e.preventDefault();
-    addCustomModel(anthropic, 'anthropic');
-  }
-});
-openai.customModelInput.addEventListener('keydown', (e) => {
-  if (e.key === 'Enter') {
-    e.preventDefault();
-    addCustomModel(openai, 'openai');
-  }
-});
-
 wireRevealButton(anthropic.apiKeyInput, anthropic.revealBtn);
 wireRevealButton(openai.apiKeyInput, openai.revealBtn);
 
@@ -427,13 +331,11 @@ local.endpointInput.addEventListener('input', () =>
 );
 
 // Clear status when the user edits any field (but keep success messages).
-const statusInputs: (HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement)[] = [
+const statusInputs: (HTMLInputElement | HTMLTextAreaElement)[] = [
   anthropic.apiKeyInput,
-  anthropic.modelSelect,
-  anthropic.customModelInput,
+  anthropic.modelInput,
   openai.apiKeyInput,
-  openai.modelSelect,
-  openai.customModelInput,
+  openai.modelInput,
   local.endpointInput,
   local.modelInput,
   promptTextarea,

@@ -15,8 +15,6 @@ import {
 import path from 'node:path';
 import started from 'electron-squirrel-startup';
 import {
-  DEFAULT_ANTHROPIC_AVAILABLE_MODELS,
-  DEFAULT_OPENAI_AVAILABLE_MODELS,
   DEFAULT_SYSTEM_PROMPT,
   Provider,
   SettingsSchema,
@@ -646,6 +644,7 @@ interface TestConnectionParams {
   provider: Provider;
   apiKey?: string;
   endpoint?: string;
+  model?: string;
 }
 
 interface TestConnectionResult {
@@ -670,7 +669,16 @@ const extractModelIds = (json: unknown): string[] => {
     .filter((id): id is string => id !== null);
 };
 
-const testAnthropic = async (apiKey: string): Promise<TestConnectionResult> => {
+// Fallback probe model used only to validate the API key when no model is entered.
+const ANTHROPIC_PROBE_MODEL = 'claude-haiku-4-5-20251001';
+
+const testAnthropic = async (
+  apiKey: string,
+  model: string,
+): Promise<TestConnectionResult> => {
+  // Probe with the model the user actually entered so a typo'd or retired model
+  // (404) is caught here, not at first use. Fall back to a known-good probe when blank.
+  const probeModel = model.trim().length > 0 ? model.trim() : ANTHROPIC_PROBE_MODEL;
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), TEST_TIMEOUT_MS);
   try {
@@ -682,17 +690,20 @@ const testAnthropic = async (apiKey: string): Promise<TestConnectionResult> => {
         'anthropic-version': '2023-06-01',
       },
       body: JSON.stringify({
-        model: 'claude-haiku-4-5-20251001',
+        model: probeModel,
         max_tokens: 1,
         messages: [{ role: 'user', content: 'hi' }],
       }),
       signal: controller.signal,
     });
     if (res.status === 200) {
-      return { success: true, message: 'API key valid' };
+      return { success: true, message: `API key valid — "${probeModel}" works` };
     }
     if (res.status === 401) {
       return { success: false, error: 'Invalid API key' };
+    }
+    if (res.status === 404) {
+      return { success: false, error: `Model "${probeModel}" not found` };
     }
     const body = await res.text().catch(() => '');
     const detail = body ? `: ${body.slice(0, 300)}` : '';
@@ -708,7 +719,10 @@ const testAnthropic = async (apiKey: string): Promise<TestConnectionResult> => {
   }
 };
 
-const testOpenAI = async (apiKey: string): Promise<TestConnectionResult> => {
+const testOpenAI = async (
+  apiKey: string,
+  model: string,
+): Promise<TestConnectionResult> => {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), TEST_TIMEOUT_MS);
   try {
@@ -719,7 +733,14 @@ const testOpenAI = async (apiKey: string): Promise<TestConnectionResult> => {
     });
     if (res.status === 200) {
       const json = await res.json().catch(() => ({}));
-      return { success: true, message: 'API key valid', models: extractModelIds(json) };
+      const models = extractModelIds(json);
+      // Double-check the entered model exists in the account's model list.
+      const entered = model.trim();
+      const message =
+        entered.length > 0 && models.length > 0 && !models.includes(entered)
+          ? `API key valid, but "${entered}" is not in your model list`
+          : 'API key valid';
+      return { success: true, message, models };
     }
     if (res.status === 401) {
       return { success: false, error: 'Invalid API key' };
@@ -773,9 +794,9 @@ const testConnection = async (
 ): Promise<TestConnectionResult> => {
   switch (params.provider) {
     case 'anthropic':
-      return testAnthropic(params.apiKey ?? '');
+      return testAnthropic(params.apiKey ?? '', params.model ?? '');
     case 'openai':
-      return testOpenAI(params.apiKey ?? '');
+      return testOpenAI(params.apiKey ?? '', params.model ?? '');
     case 'local':
       return testLocal(params.endpoint ?? '');
     default:
@@ -813,12 +834,6 @@ ipcMain.handle('get-default-system-prompt', (): string => DEFAULT_SYSTEM_PROMPT)
 const isProvider = (value: unknown): value is Provider =>
   value === 'anthropic' || value === 'openai' || value === 'local';
 
-const cleanModelList = (value: unknown): string[] | null => {
-  if (!Array.isArray(value)) return null;
-  const cleaned = value.filter((m): m is string => typeof m === 'string' && m.length > 0);
-  return cleaned.length > 0 ? cleaned : null;
-};
-
 ipcMain.handle('save-settings', (_event, data: Partial<SettingsSchema>) => {
   const current = getSettings();
   const next: SettingsSchema = {
@@ -829,22 +844,12 @@ ipcMain.handle('save-settings', (_event, data: Partial<SettingsSchema>) => {
       typeof data.anthropicModel === 'string' && data.anthropicModel.trim().length > 0
         ? data.anthropicModel
         : current.anthropicModel,
-    anthropicAvailableModels:
-      cleanModelList(data.anthropicAvailableModels) ??
-      (current.anthropicAvailableModels.length > 0
-        ? current.anthropicAvailableModels
-        : [...DEFAULT_ANTHROPIC_AVAILABLE_MODELS]),
     openaiApiKey:
       typeof data.openaiApiKey === 'string' ? data.openaiApiKey : current.openaiApiKey,
     openaiModel:
       typeof data.openaiModel === 'string' && data.openaiModel.trim().length > 0
         ? data.openaiModel
         : current.openaiModel,
-    openaiAvailableModels:
-      cleanModelList(data.openaiAvailableModels) ??
-      (current.openaiAvailableModels.length > 0
-        ? current.openaiAvailableModels
-        : [...DEFAULT_OPENAI_AVAILABLE_MODELS]),
     localEndpoint:
       typeof data.localEndpoint === 'string' && data.localEndpoint.trim().length > 0
         ? data.localEndpoint
