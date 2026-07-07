@@ -272,7 +272,11 @@ final class OverlayController: NSObject, NSWindowDelegate {
         positionOnActiveScreen()
         resetToInput()
 
-        NSApp.activate(ignoringOtherApps: true)
+        // Do NOT call NSApp.activate here. As a `.nonactivatingPanel`, the panel
+        // can become key on its own — makeKeyAndOrderFront gives the text field
+        // keyboard focus without activating the app. Activating would drag the
+        // app's home Space forward, switching the user to the desktop instead of
+        // overlaying the panel on their current window / fullscreen app.
         panel.alphaValue = 0
         panel.makeKeyAndOrderFront(nil)
         NSAnimationContext.runAnimationGroup { ctx in
@@ -286,12 +290,11 @@ final class OverlayController: NSObject, NSWindowDelegate {
 
     func hide() {
         removeKeyMonitor()
+        // Ordering the nonactivating panel out returns key focus to the app that
+        // was frontmost — no NSApp.hide needed. Calling NSApp.hide would fight the
+        // no-activate behavior and could bounce the user off their current Space.
         panel.orderOut(nil)
         resetToInput()
-        // Return focus to the previously active app, unless Settings is open.
-        if !(SettingsWindowController.sharedIfVisible?.isVisible ?? false) {
-            NSApp.hide(nil)
-        }
     }
 
     /// Dismiss the overlay (and its key monitor) when handing focus to the
