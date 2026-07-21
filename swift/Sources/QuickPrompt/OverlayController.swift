@@ -272,13 +272,25 @@ final class OverlayController: NSObject, NSWindowDelegate {
         positionOnActiveScreen()
         resetToInput()
 
-        // Do NOT call NSApp.activate here. As a `.nonactivatingPanel`, the panel
-        // can become key on its own — makeKeyAndOrderFront gives the text field
-        // keyboard focus without activating the app. Activating would drag the
-        // app's home Space forward, switching the user to the desktop instead of
+        // Avoid NSApp.activate up front. As a `.nonactivatingPanel`, the panel
+        // can usually become key on its own — activating would drag the app's
+        // home Space forward, switching the user to the desktop instead of
         // overlaying the panel on their current window / fullscreen app.
+        // orderFrontRegardless shows the panel even when the frontmost app is
+        // fullscreen and this app has never been active.
         panel.alphaValue = 0
-        panel.makeKeyAndOrderFront(nil)
+        panel.orderFrontRegardless()
+        panel.makeKey()
+        if !panel.isKeyWindow {
+            // Some contexts (another app's fullscreen Space) refuse key status
+            // to a nonactivating panel unless the app is active. The app is an
+            // accessory whose only window joins all Spaces, so activating here
+            // does not switch Spaces.
+            NSApp.activate(ignoringOtherApps: true)
+            panel.makeKeyAndOrderFront(nil)
+        }
+        let front = NSWorkspace.shared.frontmostApplication?.localizedName ?? "?"
+        Diag.log.notice("show(): visible=\(self.panel.isVisible) key=\(self.panel.isKeyWindow) front=\(front, privacy: .public)")
         NSAnimationContext.runAnimationGroup { ctx in
             ctx.duration = 0.12
             panel.animator().alphaValue = 1

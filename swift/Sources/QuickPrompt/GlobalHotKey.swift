@@ -35,7 +35,11 @@ final class GlobalHotKey {
                     MemoryLayout<EventHotKeyID>.size, nil, &hkID
                 )
                 let me = Unmanaged<GlobalHotKey>.fromOpaque(userData).takeUnretainedValue()
-                DispatchQueue.main.async { me.handler() }
+                DispatchQueue.main.async {
+                    let front = NSWorkspace.shared.frontmostApplication?.localizedName ?? "?"
+                    Diag.log.notice("hotkey fired (front=\(front, privacy: .public))")
+                    me.handler()
+                }
                 return noErr
             },
             1, &eventType, selfPtr, &eventHandler
@@ -50,10 +54,19 @@ final class GlobalHotKey {
             if RegisterEventHotKey(code, modifiers, hotKeyID,
                                    GetApplicationEventTarget(), 0, &hotKeyRef) == noErr {
                 registered = true
+                let key = code == UInt32(kVK_ANSI_G) ? "G" : "Space"
+                Diag.log.notice("registered hotkey ⌘⇧\(key, privacy: .public)")
                 break
             }
         }
         guard registered else { return nil }
+
+        // Carbon hotkeys are silently suppressed while any app holds Secure
+        // Keyboard Entry (password fields in browsers, Teams login, a stuck
+        // Terminal setting). Surface it so "hotkey does nothing" is explainable.
+        if IsSecureEventInputEnabled() {
+            Diag.log.warning("Secure Keyboard Entry is active — the global hotkey will not fire until the app holding it releases it")
+        }
     }
 
     deinit {
